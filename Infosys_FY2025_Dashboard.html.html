@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infosys FY2024-25 Financial Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #EBF2FF; min-height: 100vh; }
+
+  .header {
+    background: linear-gradient(135deg, #003087 0%, #0044CC 60%, #0077B6 100%);
+    padding: 28px 36px 22px; position: relative; overflow: hidden;
+  }
+  .header::before {
+    content:''; position:absolute; top:-40px; right:-40px; width:220px; height:220px;
+    border-radius:50%; background:rgba(255,255,255,0.05);
+  }
+  .header::after {
+    content:''; position:absolute; bottom:-60px; left:220px; width:320px; height:320px;
+    border-radius:50%; background:rgba(255,255,255,0.04);
+  }
+  .header-top { display:flex; align-items:center; gap:16px; margin-bottom:14px; }
+  .logo { background:white; border-radius:12px; padding:6px 16px; font-size:22px; font-weight:900; color:#003087; letter-spacing:-0.5px; }
+  .header-title { color:white; font-size:24px; font-weight:800; }
+  .header-sub { color:rgba(255,255,255,0.7); font-size:13px; margin-top:2px; }
+  .header-badges { display:flex; gap:12px; flex-wrap:wrap; }
+  .badge { background:rgba(255,255,255,0.12); border-radius:8px; padding:5px 14px; color:white; font-size:12px; }
+  .badge-green { background:rgba(6,214,160,0.25); color:#06D6A0; font-weight:700; }
+
+  .tabs { background:white; padding:0 36px; border-bottom:1px solid #E0EBFF; display:flex; gap:0; overflow-x:auto; }
+  .tab { background:none; border:none; padding:14px 26px; cursor:pointer; font-weight:500; font-size:14px; color:#666; border-bottom:3px solid transparent; transition:all 0.2s; white-space:nowrap; }
+  .tab.active { font-weight:700; color:#003087; border-bottom:3px solid #003087; }
+  .tab:hover { color:#003087; }
+
+  .content { padding:28px 36px; }
+  .section { display:none; }
+  .section.active { display:block; }
+
+  .kpi-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(210px, 1fr)); gap:16px; margin-bottom:28px; }
+  .kpi-card { background:white; border-radius:14px; padding:18px 20px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #E5EFFF; }
+  .kpi-label { font-size:11px; font-weight:700; color:#88A0C0; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:10px; display:flex; justify-content:space-between; }
+  .kpi-value { font-size:22px; font-weight:800; color:#003087; margin-bottom:4px; }
+  .kpi-sub { font-size:12px; color:#888; margin-bottom:8px; }
+  .kpi-badge { font-size:12px; font-weight:700; padding:3px 10px; border-radius:20px; display:inline-block; }
+  .kpi-up { color:#06D6A0; background:#EDFFF7; }
+  .kpi-neutral { color:#F77F00; background:#FFF5EC; }
+
+  .chart-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:20px; }
+  .chart-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:20px; margin-bottom:20px; }
+  .chart-full { margin-bottom:20px; }
+  .card { background:white; border-radius:14px; padding:22px 24px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #E5EFFF; }
+  .card-title { font-weight:700; font-size:15px; color:#003087; margin-bottom:18px; }
+
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  thead tr { background:#003087; color:white; }
+  th { padding:11px 14px; text-align:right; font-weight:700; font-size:12px; letter-spacing:0.3px; }
+  th:first-child { text-align:left; }
+  td { padding:10px 14px; text-align:right; border-bottom:1px solid #EEF2FF; }
+  td:first-child { text-align:left; }
+  tr:nth-child(even) td { background:#F8FBFF; }
+  tr.highlight td { background:#EAF4FB; font-weight:700; }
+  tr.section-head td { background:#0077B6; color:white; font-weight:700; }
+
+  .pill { padding:3px 10px; border-radius:12px; font-size:12px; font-weight:700; }
+  .pill-green { color:#06D6A0; background:#EDFFF7; }
+  .pill-red { color:#EF233C; background:#FFF0F0; }
+  .pill-blue { color:#003087; background:#EAF4FB; }
+
+  .bar-label { display:flex; justify-content:space-between; font-size:12px; margin-bottom:5px; }
+  .bar-bg { height:8px; background:#EEF2FF; border-radius:4px; margin-bottom:14px; }
+  .bar-fill { height:8px; border-radius:4px; }
+
+  .geo-item { padding-bottom:18px; margin-bottom:18px; border-bottom:1px solid #EEF2FF; }
+  .geo-item:last-child { border-bottom:none; }
+
+  .client-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+  .client-card { background:#F0F7FF; border-radius:10px; padding:18px; text-align:center; }
+  .client-number { font-size:36px; font-weight:900; }
+  .client-label { font-size:12px; font-weight:700; color:#555; margin-top:4px; }
+  .client-change { font-size:11px; color:#999; margin-top:6px; }
+
+  .note { background:#EAF4FB; border-radius:10px; padding:14px 18px; font-size:13px; color:#003087; margin-top:16px; }
+  .footer { text-align:center; color:#999; font-size:11px; padding:20px 36px 40px; }
+
+  .ratio-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-top:20px; }
+  .ratio-card { background:#F0F7FF; border-radius:10px; padding:16px 18px; }
+  .ratio-label { font-size:12px; color:#888; margin-bottom:6px; }
+  .ratio-values { display:flex; justify-content:space-between; align-items:center; }
+  .ratio-main { font-size:20px; font-weight:800; color:#003087; }
+  .ratio-prev { font-size:12px; color:#999; }
+
+  .cash-cards { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:20px; }
+  .cash-card { background:white; border-radius:14px; padding:22px 24px; box-shadow:0 2px 12px rgba(0,0,0,0.06); border:1px solid #E5EFFF; }
+
+  @media (max-width: 768px) {
+    .content { padding:16px; }
+    .chart-grid, .chart-grid-3 { grid-template-columns:1fr; }
+    .client-grid { grid-template-columns:1fr 1fr; }
+    .ratio-grid, .cash-cards { grid-template-columns:1fr; }
+    .header { padding:20px 16px; }
+    .tabs { padding:0 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div class="logo">INFY</div>
+    <div>
+      <div class="header-title">Infosys Limited</div>
+      <div class="header-sub">FY2024-25 Financial Performance Dashboard</div>
+    </div>
+  </div>
+  <div class="header-badges">
+    <div class="badge"><span style="opacity:0.65">NSE: </span><strong>INFY</strong></div>
+    <div class="badge"><span style="opacity:0.65">BSE: </span><strong>500209</strong></div>
+    <div class="badge"><span style="opacity:0.65">NYSE: </span><strong>INFY</strong></div>
+    <div class="badge"><span style="opacity:0.65">FY End: </span><strong>Mar 31, 2025</strong></div>
+    <div class="badge badge-green">✓ Carbon Neutral — 6 Years Running</div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('overview')">Overview</button>
+  <button class="tab" onclick="showTab('pl')">P&amp;L Statement</button>
+  <button class="tab" onclick="showTab('segments')">Segments</button>
+  <button class="tab" onclick="showTab('geography')">Geography</button>
+  <button class="tab" onclick="showTab('cashflow')">Cash Flow</button>
+</div>
+
+<div class="content">
+
+<!-- ===== OVERVIEW ===== -->
+<div id="tab-overview" class="section active">
+  <div class="kpi-grid">
+    <div class="kpi-card"><div class="kpi-label">Revenue <span>📊</span></div><div class="kpi-value">₹1,62,990 Cr</div><div class="kpi-sub">$19,277 Mn</div><div class="kpi-badge kpi-up">▲ +6.1% YoY</div></div>
+    <div class="kpi-card"><div class="kpi-label">Net Profit <span>💰</span></div><div class="kpi-value">₹26,750 Cr</div><div class="kpi-sub">$3,158 Mn</div><div class="kpi-badge kpi-up">▲ +1.9% YoY</div></div>
+    <div class="kpi-card"><div class="kpi-label">Operating Margin <span>📈</span></div><div class="kpi-value">21.1%</div><div class="kpi-sub">EBIT Margin</div><div class="kpi-badge kpi-up">▲ +0.3pp YoY</div></div>
+    <div class="kpi-card"><div class="kpi-label">Basic EPS <span>💵</span></div><div class="kpi-value">₹64.50</div><div class="kpi-sub">$0.76 per share</div><div class="kpi-badge kpi-up">▲ +1.8% YoY</div></div>
+    <div class="kpi-card"><div class="kpi-label">Free Cash Flow <span>🔄</span></div><div class="kpi-value">₹34,549 Cr</div><div class="kpi-sub">~$4.1 Billion</div><div class="kpi-badge kpi-up">▲ +44.8% YoY</div></div>
+    <div class="kpi-card"><div class="kpi-label">Large Deal TCV <span>🤝</span></div><div class="kpi-value">$11.6 Bn</div><div class="kpi-sub">US Dollars</div><div class="kpi-badge kpi-up">▲ Sustained Momentum</div></div>
+    <div class="kpi-card"><div class="kpi-label">Employees <span>👥</span></div><div class="kpi-value">3,23,578</div><div class="kpi-sub">As of Mar 31, 2025</div><div class="kpi-badge kpi-neutral">39% Women</div></div>
+    <div class="kpi-card"><div class="kpi-label">Total Dividend <span>🎁</span></div><div class="kpi-value">₹43/share</div><div class="kpi-sub">FY25 total payout</div><div class="kpi-badge kpi-neutral">51.6% FCF payout</div></div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Revenue & Net Profit Trend (₹ Crore)</div>
+      <canvas id="revProfitChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">USD Revenue Trend ($Mn)</div>
+      <canvas id="usdChart" height="220"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Revenue by Geography — FY25 (%)</div>
+      <canvas id="geoChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Key Financial Ratios</div>
+      <div class="bar-label"><span style="color:#555">Gross Margin</span><strong style="color:#003087">30.5%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:30.5%;background:linear-gradient(90deg,#003087,#00B4D8)"></div></div>
+      <div class="bar-label"><span style="color:#555">EBIT / Operating Margin</span><strong style="color:#003087">24.1%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:24.1%;background:linear-gradient(90deg,#003087,#00B4D8)"></div></div>
+      <div class="bar-label"><span style="color:#555">Net Profit Margin</span><strong style="color:#003087">16.4%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:16.4%;background:linear-gradient(90deg,#003087,#00B4D8)"></div></div>
+      <div class="bar-label"><span style="color:#555">FCF Conversion (% Net Profit)</span><strong style="color:#003087">129.2%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:80%;background:linear-gradient(90deg,#06D6A0,#0077B6)"></div></div>
+      <div class="bar-label"><span style="color:#555">Women in Workforce</span><strong style="color:#003087">39%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:39%;background:linear-gradient(90deg,#F77F00,#FFB347)"></div></div>
+      <div class="bar-label"><span style="color:#555">Return on Equity (approx.)</span><strong style="color:#003087">~28%</strong></div>
+      <div class="bar-bg"><div class="bar-fill" style="width:28%;background:linear-gradient(90deg,#003087,#00B4D8)"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== P&L ===== -->
+<div id="tab-pl" class="section">
+  <div class="card">
+    <div class="card-title">Consolidated Profit & Loss Statement — FY2024-25</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Particulars</th><th>FY 2025 (₹ Cr)</th><th>FY 2024 (₹ Cr)</th><th>Change (₹ Cr)</th><th>YoY Growth</th></tr></thead>
+      <tbody id="pl-table"></tbody>
+    </table>
+    </div>
+    <div class="ratio-grid">
+      <div class="ratio-card"><div class="ratio-label">PBT Margin</div><div class="ratio-values"><span class="ratio-main">23.1%</span><span class="ratio-prev">FY24: 23.4%</span></div></div>
+      <div class="ratio-card"><div class="ratio-label">PAT Margin</div><div class="ratio-values"><span class="ratio-main">16.4%</span><span class="ratio-prev">FY24: 17.1%</span></div></div>
+      <div class="ratio-card"><div class="ratio-label">Operating Margin</div><div class="ratio-values"><span class="ratio-main">21.1%</span><span class="ratio-prev">FY24: 20.8%</span></div></div>
+    </div>
+  </div>
+  <div class="card chart-full" style="margin-top:20px">
+    <div class="card-title">5-Year Revenue & Profit Trend (₹ Crore)</div>
+    <canvas id="plTrendChart" height="140"></canvas>
+  </div>
+</div>
+
+<!-- ===== SEGMENTS ===== -->
+<div id="tab-segments" class="section">
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Revenue by Segment — FY25 vs FY24 (₹ Cr)</div>
+      <canvas id="segRevChart" height="300"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Operating Margin by Segment — FY25 (%)</div>
+      <canvas id="segMarginChart" height="300"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Segment Revenue & Margin Detail</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Segment</th><th>FY25 Revenue (₹ Cr)</th><th>FY24 Revenue (₹ Cr)</th><th>Growth</th><th>Op. Margin FY25</th><th>Op. Margin FY24</th></tr></thead>
+      <tbody id="seg-table"></tbody>
+    </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GEOGRAPHY ===== -->
+<div id="tab-geography" class="section">
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Revenue Mix — FY25 vs FY24 (%)</div>
+      <canvas id="geoBarChart" height="260"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Geography Detail</div>
+      <div id="geo-detail"></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Client Revenue Segmentation</div>
+    <div class="client-grid">
+      <div class="client-card"><div class="client-number" style="color:#003087">39</div><div class="client-label">$100Mn+ Clients</div><div class="client-change">FY24: 40 | ▼ 1</div></div>
+      <div class="client-card"><div class="client-number" style="color:#0077B6">85</div><div class="client-label">$50Mn+ Clients</div><div class="client-change">FY24: 83 | ▲ 2</div></div>
+      <div class="client-card"><div class="client-number" style="color:#00B4D8">309</div><div class="client-label">$10Mn+ Clients</div><div class="client-change">FY24: 315 | ▼ 6</div></div>
+      <div class="client-card"><div class="client-number" style="color:#06D6A0">992</div><div class="client-label">$1Mn+ Clients</div><div class="client-change">FY24: 959 | ▲ 33</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CASH FLOW ===== -->
+<div id="tab-cashflow" class="section">
+  <div class="cash-cards">
+    <div class="cash-card"><div style="font-size:11px;color:#88A0C0;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Consolidated Cash & Investments</div><div style="font-size:28px;font-weight:900;color:#003087;margin-bottom:4px">₹47,549 Cr</div><div style="font-size:13px;color:#888">FY24: ₹39,005 Cr</div><div style="font-size:13px;color:#06D6A0;font-weight:700;margin-top:4px">▲ +21.9% YoY</div></div>
+    <div class="cash-card"><div style="font-size:11px;color:#88A0C0;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Free Cash Flow</div><div style="font-size:28px;font-weight:900;color:#003087;margin-bottom:4px">₹34,549 Cr</div><div style="font-size:13px;color:#888">FY24: ₹23,860 Cr</div><div style="font-size:13px;color:#06D6A0;font-weight:700;margin-top:4px">▲ +44.8% YoY</div></div>
+    <div class="cash-card"><div style="font-size:11px;color:#88A0C0;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">FCF Conversion Ratio</div><div style="font-size:28px;font-weight:900;color:#06D6A0;margin-bottom:4px">129.2%</div><div style="font-size:13px;color:#888">FCF as % of Net Profit</div><div style="height:8px;background:#EEF2FF;border-radius:4px;margin-top:12px"><div style="height:8px;background:#06D6A0;border-radius:4px;width:80%"></div></div></div>
+  </div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-title">Cash & Investments (₹ Crore)</div>
+      <canvas id="cashChart" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Dividend History per Share (₹)</div>
+      <canvas id="divChart" height="220"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Dividend Payout Detail</div>
+    <div style="overflow-x:auto">
+    <table>
+      <thead><tr><th>Component</th><th>FY25 (₹/share)</th><th>FY24 (₹/share)</th><th>FY25 Payout (₹ Cr)</th><th>FY24 Payout (₹ Cr)</th></tr></thead>
+      <tbody>
+        <tr><td>Interim Dividend</td><td>21.00</td><td>18.00</td><td>8,720</td><td>7,471</td></tr>
+        <tr><td>Final Dividend</td><td>22.00</td><td>20.00</td><td>9,137</td><td>8,302</td></tr>
+        <tr><td>Special Dividend</td><td>—</td><td>8.00</td><td>—</td><td>3,320</td></tr>
+        <tr class="highlight"><td>TOTAL</td><td>43.00</td><td>46.00</td><td>17,857</td><td>19,093</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="note"><strong>Capital Allocation Policy:</strong> ~85% of Free Cash Flow to be returned to shareholders cumulatively over a 5-year period via dividends and/or buybacks. FCF Payout Ratio FY25: 51.6% | FY24: 79.8%</div>
+  </div>
+</div>
+
+</div><!-- /content -->
+
+<div class="footer">Source: Infosys Integrated Annual Report 2024-25 | All ₹ figures in Crore | 1 Crore = 10 Million | Dashboard for analytical purposes only</div>
+
+<script>
+// ---- DATA ----
+const years = ['FY21','FY22','FY23','FY24','FY25'];
+const revData = [100472, 121641, 146767, 153670, 162990];
+const profData = [19351, 22110, 24095, 26233, 26750];
+const usdData = [13561, 16311, 18212, 18562, 19277];
+
+const segments = [
+  { name: 'Financial Services', rev25: 45175, rev24: 42158, margin25: 24.6, margin24: 22.1 },
+  { name: 'Manufacturing',      rev25: 25207, rev24: 22298, margin25: 19.3, margin24: 18.8 },
+  { name: 'Retail & CPG',       rev25: 22059, rev24: 22504, margin25: 32.3, margin24: 30.6 },
+  { name: 'Energy & Utilities', rev25: 21710, rev24: 20035, margin25: 28.1, margin24: 27.6 },
+  { name: 'Communication',      rev25: 19108, rev24: 17991, margin25: 17.5, margin24: 20.5 },
+  { name: 'Hi-Tech',            rev25: 13090, rev24: 12411, margin25: 24.6, margin24: 25.4 },
+  { name: 'Life Sciences',      rev25: 11831, rev24: 11515, margin25: 22.5, margin24: 25.2 },
+  { name: 'Others',             rev25: 4810,  rev24: 4758,  margin25: 17.2, margin24: 16.0 },
+];
+
+const geoData = [
+  { region: 'North America', pct25: 57.9, pct24: 60.1, color: '#003087' },
+  { region: 'Europe',        pct25: 29.8, pct24: 27.6, color: '#0077B6' },
+  { region: 'Rest of World', pct25: 9.2,  pct24: 9.8,  color: '#00B4D8' },
+  { region: 'India',         pct25: 3.1,  pct24: 2.5,  color: '#06D6A0' },
+];
+
+const plRows = [
+  { item: 'Revenue from Operations', fy25: 162990, fy24: 153670, highlight: false },
+  { item: 'Other Income (net)',        fy25: 3600,   fy24: 4711,   highlight: false },
+  { item: 'Total Income',              fy25: 166590, fy24: 158381, highlight: true  },
+  { item: 'Cost of Sales',             fy25: 113347, fy24: 107413, highlight: false, expense: true },
+  { item: 'Selling & Marketing',       fy25: 7588,   fy24: 6973,   highlight: false, expense: true },
+  { item: 'General & Admin',           fy25: 7631,   fy24: 7537,   highlight: false, expense: true },
+  { item: 'Total Expenses',            fy25: 128566, fy24: 121923, highlight: true,  expense: true },
+  { item: 'Profit Before Tax',         fy25: 37608,  fy24: 35988,  highlight: false },
+  { item: 'Tax Expense',               fy25: 10858,  fy24: 9740,   highlight: false, expense: true },
+  { item: 'Net Profit',                fy25: 26750,  fy24: 26248,  highlight: true  },
+];
+
+function fmt(n) { return n.toLocaleString('en-IN'); }
+
+// ---- TABS ----
+function showTab(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ---- BUILD TABLES ----
+function buildPLTable() {
+  const tb = document.getElementById('pl-table');
+  plRows.forEach(r => {
+    const chg = r.fy25 - r.fy24;
+    const pct = ((r.fy25 - r.fy24) / r.fy24 * 100).toFixed(1);
+    const isUp = r.expense ? chg < 0 : chg > 0;
+    const pillClass = isUp ? 'pill-green' : 'pill-red';
+    const arrow = parseFloat(pct) > 0 ? '▲' : '▼';
+    const tr = document.createElement('tr');
+    if (r.highlight) tr.classList.add('highlight');
+    tr.innerHTML = `
+      <td>${r.item}</td>
+      <td>${fmt(r.fy25)}</td>
+      <td style="color:#777">${fmt(r.fy24)}</td>
+      <td style="color:${chg > 0 ? '#0077B6' : '#EF233C'}">${chg > 0 ? '+' : ''}${fmt(chg)}</td>
+      <td><span class="pill ${pillClass}">${arrow} ${Math.abs(pct)}%</span></td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function buildSegTable() {
+  const tb = document.getElementById('seg-table');
+  segments.forEach((s, i) => {
+    const g = ((s.rev25 - s.rev24) / s.rev24 * 100).toFixed(1);
+    const up = parseFloat(g) >= 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:600;color:#003087">${s.name}</td>
+      <td>${fmt(s.rev25)}</td>
+      <td style="color:#777">${fmt(s.rev24)}</td>
+      <td><span class="pill ${up ? 'pill-green' : 'pill-red'}">${up ? '▲' : '▼'} ${Math.abs(g)}%</span></td>
+      <td style="font-weight:700;color:${s.margin25 >= 24.1 ? '#06D6A0' : '#0077B6'}">${s.margin25}%</td>
+      <td style="color:#777">${s.margin24}%</td>`;
+    tb.appendChild(tr);
+  });
+}
+
+function buildGeoDetail() {
+  const div = document.getElementById('geo-detail');
+  geoData.forEach(g => {
+    const rev25 = Math.round(162990 * g.pct25 / 100);
+    const rev24 = Math.round(153670 * g.pct24 / 100);
+    const chg = ((rev25 - rev24) / rev24 * 100).toFixed(1);
+    const up = parseFloat(chg) > 0;
+    div.innerHTML += `
+    <div class="geo-item">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:12px;height:12px;border-radius:50%;background:${g.color}"></div>
+          <span style="font-weight:700;color:#003087;font-size:14px">${g.region}</span>
+        </div>
+        <span style="font-size:22px;font-weight:800;color:${g.color}">${g.pct25}%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:6px">
+        <span>FY25: ₹${fmt(rev25)} Cr</span>
+        <span>FY24: ₹${fmt(rev24)} Cr</span>
+        <span style="color:${up ? '#06D6A0' : '#EF233C'};font-weight:700">${up ? '▲' : '▼'} ${Math.abs(chg)}%</span>
+      </div>
+      <div class="bar-bg"><div class="bar-fill" style="width:${g.pct25}%;background:${g.color}"></div></div>
+    </div>`;
+  });
+}
+
+// ---- CHARTS ----
+const chartDefaults = {
+  plugins: { legend: { labels: { font: { family: 'Segoe UI', size: 12 } } } },
+  scales: {
+    x: { grid: { color: '#EEF2FF' }, ticks: { font: { size: 11 } } },
+    y: { grid: { color: '#EEF2FF' }, ticks: { font: { size: 11 } } }
+  }
+};
+
+// Revenue & Profit
+new Chart(document.getElementById('revProfitChart'), {
+  type: 'bar',
+  data: {
+    labels: years,
+    datasets: [
+      { label: 'Revenue', data: revData, backgroundColor: '#003087', borderRadius: 5 },
+      { label: 'Net Profit', data: profData, backgroundColor: '#06D6A0', borderRadius: 5 }
+    ]
+  },
+  options: { ...chartDefaults, responsive: true,
+    scales: { x: { grid:{color:'#EEF2FF'} }, y: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `${(v/1000).toFixed(0)}K` } } }
+  }
+});
+
+// USD Chart
+new Chart(document.getElementById('usdChart'), {
+  type: 'line',
+  data: {
+    labels: years,
+    datasets: [{ label: 'USD Revenue ($Mn)', data: usdData, borderColor: '#00B4D8', backgroundColor: 'rgba(0,180,216,0.1)', borderWidth: 3, pointRadius: 5, pointBackgroundColor: '#00B4D8', fill: true, tension: 0.3 }]
+  },
+  options: { ...chartDefaults, responsive: true,
+    scales: { x: { grid:{color:'#EEF2FF'} }, y: { grid:{color:'#EEF2FF'}, min: 10000, ticks: { callback: v => `$${(v/1000).toFixed(0)}B` } } }
+  }
+});
+
+// Geo Pie
+new Chart(document.getElementById('geoChart'), {
+  type: 'doughnut',
+  data: {
+    labels: geoData.map(g => `${g.region} (${g.pct25}%)`),
+    datasets: [{ data: geoData.map(g => g.pct25), backgroundColor: geoData.map(g => g.color), borderWidth: 2, borderColor: '#fff' }]
+  },
+  options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } }
+});
+
+// P&L Trend
+new Chart(document.getElementById('plTrendChart'), {
+  type: 'line',
+  data: {
+    labels: years,
+    datasets: [
+      { label: 'Revenue', data: revData, borderColor: '#003087', backgroundColor: 'rgba(0,48,135,0.08)', borderWidth: 2.5, pointRadius: 4, fill: true, tension: 0.3 },
+      { label: 'Net Profit', data: profData, borderColor: '#06D6A0', backgroundColor: 'rgba(6,214,160,0.08)', borderWidth: 2.5, pointRadius: 4, fill: true, tension: 0.3 }
+    ]
+  },
+  options: { ...chartDefaults, responsive: true,
+    scales: { x: { grid:{color:'#EEF2FF'} }, y: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `${(v/1000).toFixed(0)}K` } } }
+  }
+});
+
+// Segment Revenue
+new Chart(document.getElementById('segRevChart'), {
+  type: 'bar',
+  data: {
+    labels: segments.map(s => s.name),
+    datasets: [
+      { label: 'FY24', data: segments.map(s => s.rev24), backgroundColor: '#A8C8F8', borderRadius: 3 },
+      { label: 'FY25', data: segments.map(s => s.rev25), backgroundColor: '#003087', borderRadius: 3 }
+    ]
+  },
+  options: { indexAxis: 'y', responsive: true,
+    plugins: { legend: { labels: { font: { size: 11 } } } },
+    scales: {
+      x: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `${(v/1000).toFixed(0)}K`, font:{size:10} } },
+      y: { grid:{color:'#EEF2FF'}, ticks: { font:{size:11} } }
+    }
+  }
+});
+
+// Segment Margin
+new Chart(document.getElementById('segMarginChart'), {
+  type: 'bar',
+  data: {
+    labels: segments.map(s => s.name),
+    datasets: [{ label: 'Op. Margin %', data: segments.map(s => s.margin25), backgroundColor: '#0077B6', borderRadius: 3 }]
+  },
+  options: { indexAxis: 'y', responsive: true,
+    plugins: {
+      legend: { labels: { font: { size: 11 } } },
+      annotation: {}
+    },
+    scales: {
+      x: { grid:{color:'#EEF2FF'}, max: 40, ticks: { callback: v => `${v}%`, font:{size:10} } },
+      y: { grid:{color:'#EEF2FF'}, ticks: { font:{size:11} } }
+    }
+  }
+});
+
+// Geo Bar
+new Chart(document.getElementById('geoBarChart'), {
+  type: 'bar',
+  data: {
+    labels: geoData.map(g => g.region),
+    datasets: [
+      { label: 'FY24 %', data: geoData.map(g => g.pct24), backgroundColor: '#A8C8F8', borderRadius: 4 },
+      { label: 'FY25 %', data: geoData.map(g => g.pct25), backgroundColor: '#003087', borderRadius: 4 }
+    ]
+  },
+  options: { responsive: true,
+    plugins: { legend: { labels: { font:{size:11} } } },
+    scales: {
+      x: { grid:{color:'#EEF2FF'} },
+      y: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `${v}%` } }
+    }
+  }
+});
+
+// Cash Chart
+new Chart(document.getElementById('cashChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Consol. Cash & Inv.', 'Standalone Cash & Inv.', 'Free Cash Flow'],
+    datasets: [
+      { label: 'FY24 (₹ Cr)', data: [39005, 30579, 23860], backgroundColor: '#A8C8F8', borderRadius: 4 },
+      { label: 'FY25 (₹ Cr)', data: [47549, 35916, 34549], backgroundColor: '#003087', borderRadius: 4 }
+    ]
+  },
+  options: { responsive: true,
+    plugins: { legend: { labels: { font:{size:11} } } },
+    scales: {
+      x: { grid:{color:'#EEF2FF'} },
+      y: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `${(v/1000).toFixed(0)}K` } }
+    }
+  }
+});
+
+// Dividend Chart
+new Chart(document.getElementById('divChart'), {
+  type: 'bar',
+  data: {
+    labels: ['FY21','FY22','FY23','FY24','FY25'],
+    datasets: [{ label: 'Dividend per Share (₹)', data: [27, 31, 34, 46, 43], backgroundColor: ['#A8C8F8','#A8C8F8','#A8C8F8','#A8C8F8','#003087'], borderRadius: 4 }]
+  },
+  options: { responsive: true,
+    plugins: { legend: { labels: { font:{size:11} } } },
+    scales: {
+      x: { grid:{color:'#EEF2FF'} },
+      y: { grid:{color:'#EEF2FF'}, ticks: { callback: v => `₹${v}` } }
+    }
+  }
+});
+
+// Init tables
+buildPLTable();
+buildSegTable();
+buildGeoDetail();
+</script>
+</body>
+</html>
